@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="TryTask" default="compile" basedir=".">
+    <property name="src.dir" value="src"/>
+    <property name="build.dir" value="bin"/>
+    <property name="lib.dir" value="lib"/>
+    
+    <path id="classpath">
+        <fileset dir="${lib.dir}">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+    
+    <target name="clean">
+        <delete dir="${build.dir}"/>
+    </target>
+    
+    <target name="init">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${lib.dir}"/>
+        <!-- Download dependencies -->
+        <get src="https://repo1.maven.org/maven2/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar" 
+             dest="${lib.dir}/gson-2.10.1.jar" 
+             skipexisting="true"/>
+        <get src="https://repo1.maven.org/maven2/com/formdev/flatlaf/3.0/flatlaf-3.0.jar" 
+             dest="${lib.dir}/flatlaf-3.0.jar" 
+             skipexisting="true"/>
+        <get src="https://repo1.maven.org/maven2/com/formdev/flatlaf-intellij-themes/3.0/flatlaf-intellij-themes-3.0.jar" 
+             dest="${lib.dir}/flatlaf-intellij-themes-3.0.jar" 
+             skipexisting="true"/>
+    </target>
+    
+    <target name="compile" depends="init">
+        <javac srcdir="${src.dir}" destdir="${build.dir}" includeantruntime="false">
+            <classpath refid="classpath"/>
+        </javac>
+        <copy todir="${build.dir}/resources">
+            <fileset dir="${src.dir}/resources"/>
+        </copy>
+    </target>
+    
+    <target name="run" depends="compile">
+        <java classname="Main" fork="true">
+            <classpath>
+                <path refid="classpath"/>
+                <pathelement location="${build.dir}"/>
+            </classpath>
+        </java>
+    </target>
+</project> 

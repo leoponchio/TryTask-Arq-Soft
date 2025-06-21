@@ -1,0 +1,13 @@
+# Arquivos compilados
+bin/
+*.class
+
+# Arquivos de dados
+*.json
+
+# Arquivos de dependências
+lib/
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db 
