@@ -1,94 +1,108 @@
 package views;
 
+import controllers.TaskController;
+import models.UserType;
+import services.AuthService;
+
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicComboBoxUI;
+import javax.swing.plaf.basic.BasicTextFieldUI;
 import java.awt.*;
-import java.awt.event.*;
-import models.*;
-import services.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
-public class LoginFrame extends JFrame {
+public class RegisterFrame extends JFrame {
     private static final Color BACKGROUND_COLOR = new Color(40, 40, 40);
     private static final Color BUTTON_COLOR = new Color(50, 50, 50);
     private static final Color TEXT_COLOR = new Color(255, 255, 255);
-    private static final Color FIELD_BACKGROUND = new Color(0, 0, 0);
-    private static final Color SELECTION_COLOR = new Color(70, 70, 70);
     private static final Color INPUT_BACKGROUND = new Color(0, 0, 0);
     private static final Color DROPDOWN_BACKGROUND = new Color(60, 60, 60);
     private static final Color SELECTED_BACKGROUND = new Color(100, 100, 100);
     private static final Color BORDER_COLOR = new Color(100, 100, 100);
-    private static final Color VERSION_BACKGROUND = new Color(30, 30, 30); // Cor mais escura para o fundo da versão
-    private static final Color VERSION_TEXT = new Color(200, 200, 200); // Texto mais claro para melhor contraste
-    private static final int FIELD_HEIGHT = 25;
+    private static final int FIELD_WIDTH = 200;
+    private static final int FIELD_HEIGHT = 30;
     
+    private JTextField nameField;
     private JTextField emailField;
     private JPasswordField senhaField;
     private JComboBox<UserType> tipoUsuarioCombo;
     private AuthService authService;
 
-    public LoginFrame() {
+    public RegisterFrame() {
         authService = AuthService.getInstance();
         setupUI();
     }
 
     private void setupUI() {
-        setTitle("TryTask");
+        setTitle("Cadastro");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(400, 300);
+        setSize(400, 350);
         setLocationRelativeTo(null);
         getContentPane().setBackground(BACKGROUND_COLOR);
 
-        // Painel principal com layout de grade
         JPanel mainPanel = new JPanel(new GridBagLayout());
         mainPanel.setBackground(BACKGROUND_COLOR);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Logo ou título
-        JLabel titleLabel = new JLabel("TryTask", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 36));
-        titleLabel.setForeground(TEXT_COLOR);
+        // Nome
+        JLabel nameLabel = new JLabel("Nome:");
+        nameLabel.setForeground(TEXT_COLOR);
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        mainPanel.add(titleLabel, gbc);
+        mainPanel.add(nameLabel, gbc);
 
-        // Campo de email
+        nameField = new JTextField();
+        nameField.setPreferredSize(new Dimension(FIELD_WIDTH, FIELD_HEIGHT));
+        nameField.setBackground(INPUT_BACKGROUND);
+        nameField.setForeground(TEXT_COLOR);
+        nameField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        nameField.setCaretColor(TEXT_COLOR);
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        mainPanel.add(nameField, gbc);
+
+        // Email
         JLabel emailLabel = new JLabel("Email:");
         emailLabel.setForeground(TEXT_COLOR);
         gbc.gridx = 0;
         gbc.gridy = 1;
-        gbc.gridwidth = 1;
         mainPanel.add(emailLabel, gbc);
-        
-        emailField = new JTextField(20);
-        emailField.setBackground(FIELD_BACKGROUND);
+
+        emailField = new JTextField();
+        emailField.setPreferredSize(new Dimension(FIELD_WIDTH, FIELD_HEIGHT));
+        emailField.setBackground(INPUT_BACKGROUND);
         emailField.setForeground(TEXT_COLOR);
-        emailField.setCaretColor(TEXT_COLOR);
         emailField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        emailField.setCaretColor(TEXT_COLOR);
         gbc.gridx = 1;
         gbc.gridy = 1;
         mainPanel.add(emailField, gbc);
-        
-        // Campo de senha
+
+        // Senha
         JLabel senhaLabel = new JLabel("Senha:");
         senhaLabel.setForeground(TEXT_COLOR);
         gbc.gridx = 0;
         gbc.gridy = 2;
         mainPanel.add(senhaLabel, gbc);
-        
-        senhaField = new JPasswordField(20);
-        senhaField.setBackground(FIELD_BACKGROUND);
+
+        senhaField = new JPasswordField();
+        senhaField.setPreferredSize(new Dimension(FIELD_WIDTH, FIELD_HEIGHT));
+        senhaField.setBackground(INPUT_BACKGROUND);
         senhaField.setForeground(TEXT_COLOR);
-        senhaField.setCaretColor(TEXT_COLOR);
         senhaField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        senhaField.setCaretColor(TEXT_COLOR);
         gbc.gridx = 1;
         gbc.gridy = 2;
         mainPanel.add(senhaField, gbc);
 
-        // ComboBox para tipo de acesso
-        JLabel tipoLabel = new JLabel("Tipo de Acesso:");
+        // Tipo de Usuário
+        JLabel tipoLabel = new JLabel("Tipo de Usuário:");
         tipoLabel.setForeground(TEXT_COLOR);
         gbc.gridx = 0;
         gbc.gridy = 3;
@@ -100,93 +114,57 @@ public class LoginFrame extends JFrame {
         gbc.gridy = 3;
         mainPanel.add(tipoUsuarioCombo, gbc);
 
-        // Botão de login
-        JButton loginButton = new JButton("Entrar");
-        styleButton(loginButton);
-        gbc.gridx = 0;
-        gbc.gridy = 4;
-        gbc.gridwidth = 2;
-        mainPanel.add(loginButton, gbc);
+        // Botões
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        buttonPanel.setBackground(BACKGROUND_COLOR);
 
-        // Link para cadastro
-        JButton cadastroButton = new JButton("Cadastrar-se");
-        styleButton(cadastroButton);
-        gbc.gridx = 0;
-        gbc.gridy = 5;
-        gbc.gridwidth = 2;
-        mainPanel.add(cadastroButton, gbc);
-
-        // Botão de associar conta
-        JButton associarButton = new JButton("Associar Nova Versão");
-        styleButton(associarButton);
-        gbc.gridx = 0;
-        gbc.gridy = 6;
-        gbc.gridwidth = 2;
-        mainPanel.add(associarButton, gbc);
-
-        // Adiciona o painel principal ao frame
-        add(mainPanel);
-
-        // Ação do botão de login
-        loginButton.addActionListener(e -> {
+        JButton cadastrarButton = new JButton("Cadastrar");
+        styleButton(cadastrarButton);
+        cadastrarButton.addActionListener(e -> {
+            String name = nameField.getText();
             String email = emailField.getText();
             String senha = new String(senhaField.getPassword());
             UserType tipoSelecionado = (UserType) tipoUsuarioCombo.getSelectedItem();
 
-            if (authService.login(email, senha, tipoSelecionado)) {
-                JOptionPane.showMessageDialog(this, "Login realizado com sucesso!");
-                new MainFrame(authService.getCurrentUser(), tipoSelecionado).setVisible(true);
+            if (name.isEmpty() || email.isEmpty() || senha.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Preencha todos os campos!", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            if (authService.register(name, email, senha, tipoSelecionado)) {
+                JOptionPane.showMessageDialog(this, "Cadastro realizado com sucesso!");
+                new LoginFrame().setVisible(true);
                 this.dispose();
             } else {
-                JOptionPane.showMessageDialog(this, "Credenciais inválidas!", "Erro", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Email já cadastrado!", "Erro", JOptionPane.ERROR_MESSAGE);
             }
         });
 
-        // Ação do botão de cadastro
-        cadastroButton.addActionListener(e -> {
-            new RegisterFrame().setVisible(true);
+        JButton voltarButton = new JButton("Voltar");
+        styleButton(voltarButton);
+        voltarButton.addActionListener(e -> {
+            new LoginFrame().setVisible(true);
             this.dispose();
         });
 
-        // Ação do botão de associar conta
-        associarButton.addActionListener(e -> {
-            new AssociateAccountFrame().setVisible(true);
-        });
+        buttonPanel.add(cadastrarButton);
+        buttonPanel.add(voltarButton);
 
-        // Ação ao pressionar Enter nos campos
-        emailField.addActionListener(e -> senhaField.requestFocus());
-        senhaField.addActionListener(e -> {
-            String email = emailField.getText();
-            String senha = new String(senhaField.getPassword());
-            UserType tipoSelecionado = (UserType) tipoUsuarioCombo.getSelectedItem();
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.gridwidth = 2;
+        mainPanel.add(buttonPanel, gbc);
 
-            if (authService.login(email, senha, tipoSelecionado)) {
-                JOptionPane.showMessageDialog(this, "Login realizado com sucesso!");
-                new MainFrame(authService.getCurrentUser(), tipoSelecionado).setVisible(true);
-                this.dispose();
-            } else {
-                JOptionPane.showMessageDialog(this, "Credenciais inválidas!", "Erro", JOptionPane.ERROR_MESSAGE);
-            }
-        });
+        add(mainPanel);
     }
 
     private void styleButton(JButton button) {
         button.setBackground(BUTTON_COLOR);
         button.setForeground(TEXT_COLOR);
         button.setFocusPainted(false);
-        button.setBorder(null);
-        button.setOpaque(true);
-        
-        // Adiciona efeito hover
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(SELECTION_COLOR);
-            }
-
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(BUTTON_COLOR);
-            }
-        });
+        button.setBorderPainted(false);
+        button.setFont(new Font("Arial", Font.PLAIN, 14));
+        button.setPreferredSize(new Dimension(100, 30));
     }
 
     private void styleComboBox(JComboBox<?> comboBox) {

@@ -1,86 +1,107 @@
 package services;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import models.User;
+import models.UserType;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 
 public class AuthService {
-    private static final String FILE_PATH = "users.json";
-    private final Gson gson;
-    private Map<String, User> users; // username -> User
+    private static AuthService instance;
+    private Map<String, User> users;
     private User currentUser;
+    private static final String USERS_FILE = "users.json";
+    private final Gson gson;
 
-    public AuthService() {
-        this.gson = new Gson();
+    private AuthService() {
+        this.gson = new GsonBuilder()
+            .setPrettyPrinting()
+            .serializeNulls()  // Serializa campos nulos
+            .create();
         this.users = loadUsers();
-        if (this.users.isEmpty()) {
-            // Criar usuário padrão se não existir nenhum
-            User admin = new User("admin", "Administrador", "admin@trytask.com", "admin123");
-            this.users.put("admin", admin);
-            saveUsers();
+    }
+
+    public static AuthService getInstance() {
+        if (instance == null) {
+            instance = new AuthService();
         }
+        return instance;
     }
 
     private Map<String, User> loadUsers() {
-        File file = new File(FILE_PATH);
+        File file = new File(USERS_FILE);
         if (!file.exists()) {
             return new HashMap<>();
         }
 
-        try {
-            Reader reader = new FileReader(file);
-            Type type = new TypeToken<HashMap<String, User>>(){}.getType();
+        try (Reader reader = new FileReader(file)) {
+            Type type = new TypeToken<Map<String, User>>(){}.getType();
             Map<String, User> loadedUsers = gson.fromJson(reader, type);
-            reader.close();
             return loadedUsers != null ? loadedUsers : new HashMap<>();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException | com.google.gson.JsonSyntaxException e) {
+            // Se houver erro na leitura do arquivo, deleta o arquivo corrompido
+            file.delete();
             return new HashMap<>();
         }
     }
 
     private void saveUsers() {
-        try {
-            FileWriter writer = new FileWriter(FILE_PATH);
+        try (Writer writer = new FileWriter(USERS_FILE)) {
             gson.toJson(users, writer);
-            writer.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public boolean authenticate(String username, String password) {
-        User user = users.get(username);
-        if (user != null && user.getPassword().equals(password)) {
+    public boolean register(String name, String email, String password, UserType userType) {
+        if (!users.containsKey(email)) {
+            User newUser = new User(name, email, password, userType);
+            users.put(email, newUser);
+            saveUsers();
+            return true;
+        }
+        return false;
+    }
+
+    public boolean login(String email, String password, UserType userType) {
+        User user = users.get(email);
+        if (user != null && user.getPassword().equals(password) && user.hasUserType(userType)) {
             currentUser = user;
             return true;
         }
         return false;
     }
 
-    public String getCurrentUserName() {
-        return currentUser != null ? currentUser.getName() : "Usuário";
-    }
-
-    public boolean registerUser(String username, String name, String email, String password) {
-        if (!users.containsKey(username)) {
-            User newUser = new User(username, name, email, password);
-            users.put(username, newUser);
-            saveUsers();
-            return true;
+    public boolean associateUserType(String email, String password, UserType newUserType) {
+        User user = users.get(email);
+        if (user != null && user.getPassword().equals(password)) {
+            if (!user.hasUserType(newUserType)) {
+                user.addUserType(newUserType);
+                saveUsers();
+                return true;
+            }
         }
         return false;
     }
 
-    public boolean isUsernameAvailable(String username) {
-        return !users.containsKey(username);
+    public boolean isEmailRegistered(String email) {
+        return users.containsKey(email);
     }
 
-    public boolean isValidEmail(String email) {
-        return email != null && email.matches("^[A-Za-z0-9+_.-]+@(.+)$");
+    public boolean hasUserType(String email, UserType userType) {
+        User user = users.get(email);
+        return user != null && user.hasUserType(userType);
+    }
+
+    public User getCurrentUser() {
+        return currentUser;
+    }
+
+    public void logout() {
+        currentUser = null;
     }
 } 
