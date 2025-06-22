@@ -1,97 +1,115 @@
 package services;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import models.Task;
-
-import java.io.*;
-import java.lang.reflect.Type;
+import models.Priority;
+import models.User;
+import models.UserType;
+import models.tasks.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class TaskService {
-    private static final String FILE_PATH = "tasks.json";
-    private final Gson gson;
+    private static TaskService instance;
+    private List<BaseTask> tasks;
+    private TaskTypeAdapter taskTypeAdapter;
+    private User currentUser;
+    private UserType currentUserType;
 
-    public TaskService() {
-        this.gson = new Gson();
+    private TaskService() {
+        this.tasks = new ArrayList<>();
+        this.taskTypeAdapter = new TaskTypeAdapter();
     }
 
-    public List<Task> loadTasks() {
-        File file = new File(FILE_PATH);
-        if (!file.exists()) {
-            return new ArrayList<>();
+    public static TaskService getInstance() {
+        if (instance == null) {
+            instance = new TaskService();
         }
-
-        try {
-            Reader reader = new FileReader(file);
-            Type type = new TypeToken<List<Task>>(){}.getType();
-            List<Task> tasks = gson.fromJson(reader, type);
-            reader.close();
-            return tasks != null ? tasks : new ArrayList<>();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
+        return instance;
     }
 
-    public void saveTask(Task task) {
-        List<Task> tasks = loadTasks();
-        boolean found = false;
+    public void setCurrentUser(User user, UserType userType) {
+        this.currentUser = user;
+        this.currentUserType = userType;
+        this.taskTypeAdapter.setCurrentUser(user, userType);
+        loadTasks(); // Carrega as tarefas do usuário atual
+    }
 
-        // Atualizar tarefa existente ou adicionar nova
+    public void addTask(BaseTask task) {
+        tasks.add(task);
+        saveTask(task);
+    }
+
+    public void updateTask(BaseTask task) {
         for (int i = 0; i < tasks.size(); i++) {
             if (tasks.get(i).getId().equals(task.getId())) {
                 tasks.set(i, task);
-                found = true;
                 break;
             }
         }
-
-        if (!found) {
-            tasks.add(task);
-        }
-
-        saveTasks(tasks);
+        saveToAdapter();
     }
 
-    public boolean deleteTask(String id) {
-        List<Task> tasks = loadTasks();
-        boolean removed = tasks.removeIf(task -> task.getId().equals(id));
-        if (removed) {
-            saveTasks(tasks);
-        }
-        return removed;
+    public void deleteTask(String taskId) {
+        tasks.removeIf(task -> task.getId().equals(taskId));
+        saveToAdapter();
     }
 
-    private void saveTasks(List<Task> tasks) {
-        try {
-            FileWriter writer = new FileWriter(FILE_PATH);
-            gson.toJson(tasks, writer);
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public List<BaseTask> getAllTasks() {
+        return new ArrayList<>(tasks);
     }
 
-    public Task createTask(String title, String description, String status, String dueDate, Task.Priority priority, String category) {
-        Task task = new Task(UUID.randomUUID().toString(), title, description, status, dueDate, priority, category);
-        List<Task> tasks = loadTasks();
-        tasks.add(task);
-        saveTasks(tasks);
-        return task;
+    public BaseTask getTaskByTitle(String title) {
+        return tasks.stream()
+            .filter(task -> task.getTitle().equals(title))
+            .findFirst()
+            .orElse(null);
     }
 
-    public Task updateTask(Task task) {
-        List<Task> tasks = loadTasks();
-        for (int i = 0; i < tasks.size(); i++) {
-            if (tasks.get(i).getId().equals(task.getId())) {
-                tasks.set(i, task);
-                saveTasks(tasks);
-                return task;
+    public List<BaseTask> getTasksByCategory(String category) {
+        return tasks.stream()
+            .filter(task -> task.getCategory().equals(category))
+            .collect(Collectors.toList());
+    }
+
+    public List<BaseTask> getTasksByStatus(boolean completed) {
+        return tasks.stream()
+            .filter(task -> task.isCompleted() == completed)
+            .collect(Collectors.toList());
+    }
+
+    public List<BaseTask> getTasksByType(Class<? extends BaseTask> taskType) {
+        return tasks.stream()
+            .filter(task -> taskType.isInstance(task))
+            .collect(Collectors.toList());
+    }
+
+    public void updateTaskStatus(String taskId, TaskStatus newStatus) {
+        for (BaseTask task : tasks) {
+            if (task.getId().equals(taskId)) {
+                task.setStatus(newStatus);
+                saveTask(task);
+                break;
             }
         }
-        return null;
+    }
+
+    private void loadTasks() {
+        if (currentUser != null && currentUserType != null) {
+            tasks = taskTypeAdapter.loadTasks();
+        } else {
+            tasks = new ArrayList<>();
+        }
+    }
+
+    private void saveToAdapter() {
+        if (currentUser != null && currentUserType != null) {
+            taskTypeAdapter.saveTasks(tasks);
+        }
+    }
+
+    private void saveTask(BaseTask task) {
+        saveToAdapter();
     }
 } 
